@@ -24,3 +24,6 @@ test = ["pytest"]
 
 [tool.hatch.version]
 source = "single"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jsonschematools"]
