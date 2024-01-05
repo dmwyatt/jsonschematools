@@ -17,7 +17,7 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "http://github.com/dmwyatt/jsonschematools"
+Repository = "https://github.com/dmwyatt/jsonschematools"
 
 [project.optional-dependencies]
 test = ["pytest"]
