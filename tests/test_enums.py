@@ -1,6 +1,9 @@
 import pytest
-from jsonschematools.core import python_type_to_json_type
-from jsonschematools.enums import add_or_update_enum_in_defs, update_property_with_enum
+from src.jsonschematools.core import python_type_to_json_type
+from src.jsonschematools.enums import (
+    _update_property, add_or_update_enum_in_defs,
+    update_property_with_enum,
+)
 
 
 @pytest.fixture
@@ -29,30 +32,29 @@ class TestUpdatePropertyWithEnum:
     def test_incompatible_enum_type_error(self, test_schema):
         """Test error when the property and enum types are incompatible."""
         test_schema["$defs"]["IncompatibleEnum"] = {"type": "number", "enum": [1, 2, 3]}
-        test_schema["properties"]["tags"]["items"] = {"type": "string"}
+        test_schema["properties"]["name"] = {"type": "string"}
         with pytest.raises(ValueError) as excinfo:
-            update_property_with_enum(test_schema, "IncompatibleEnum", "tags")
+            update_property_with_enum(test_schema, "IncompatibleEnum", "name")
         assert "type is incompatible with enum" in str(excinfo.value)
 
     def test_update_root_property_with_enum(self, test_schema):
         """Test updating a root level property with an enum."""
-        schema = update_property_with_enum(test_schema, "StringEnum", "tags")
-        assert schema["properties"]["tags"]["items"]["$ref"] == "#/$defs/StringEnum"
+        schema = update_property_with_enum(test_schema, "StringEnum", "name")
+        assert schema["properties"]["name"]["$ref"] == "#/$defs/StringEnum"
 
     def test_update_def_property_with_enum(self, test_schema):
         """Test updating a property within $defs with an enum."""
         schema = update_property_with_enum(
-            test_schema, "StringEnum", "emails", "ContactInfo"
+                test_schema, "StringEnum", "emails", "ContactInfo"
         )
         assert (
-            schema["$defs"]["ContactInfo"]["properties"]["emails"]["items"]["$ref"]
-            == "#/$defs/StringEnum"
+                schema["$defs"]["ContactInfo"]["properties"]["emails"]["items"]["$ref"]
+                == "#/$defs/StringEnum"
         )
-
     def test_enum_not_found_error(self, test_schema):
         """Test error when the enum is not found."""
         with pytest.raises(ValueError) as excinfo:
-            update_property_with_enum(test_schema, "NonExistentEnum", "tags")
+            update_property_with_enum(test_schema, "NonExistentEnum", "name")
         assert "Enum 'NonExistentEnum' not found in $defs." in str(excinfo.value)
 
     def test_property_not_found_error(self, test_schema):
@@ -61,12 +63,22 @@ class TestUpdatePropertyWithEnum:
             update_property_with_enum(test_schema, "ContactInfo", "nonexistentProperty")
         assert "Property 'nonexistentProperty' not found." in str(excinfo.value)
 
-    def test_property_not_array_type_error(self, test_schema):
-        """Test error when the property is not of 'array' type."""
-        with pytest.raises(ValueError) as excinfo:
-            update_property_with_enum(test_schema, "ContactInfo", "name")
-        assert "Property 'name' is not an array." in str(excinfo.value)
+    def test_update_array_property_with_enum(self, test_schema):
+        """Test updating an array property with an enum."""
+        schema = update_property_with_enum(test_schema, "StringEnum", "tags")
+        assert schema["properties"]["tags"]["items"]["$ref"] == "#/$defs/StringEnum"
 
+    def test_update_array_property_with_incompatible_enum_in_defs(self, test_schema):
+        """Test updating an array property within $defs with an incompatible enum."""
+        # Add a new enum of type 'number' to the schema
+        test_schema = add_or_update_enum_in_defs(test_schema, "NumberEnum", [1, 2, 3])
+        # Try to update the 'emails' property (which is an array of strings) with the 'NumberEnum'
+        with pytest.raises(ValueError) as excinfo:
+            schema = update_property_with_enum(
+                    test_schema, "NumberEnum", "emails", "ContactInfo"
+            )
+        assert "Property 'emails' items type is incompatible with enum 'NumberEnum' type." in str(
+            excinfo.value)
 
 class TestAddOrUpdateEnumInDefs:
     def test_add_new_enum(self, test_schema):
@@ -132,3 +144,92 @@ class TestPythonTypeToJsonType:
         with pytest.raises(ValueError) as excinfo:
             python_type_to_json_type(list)
         assert "Unsupported Python type" in str(excinfo.value)
+
+
+class TestUpdateProperty:
+    def test_update_property_with_enum_reference(self):
+        """Test updating a property with an enum reference."""
+        # Define a schema with a property and an enum
+        schema = {
+            "properties": {
+                "color": {"type": "string"}
+            },
+            "$defs": {
+                "Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}
+            }
+        }
+        # Update the 'color' property to reference the 'Colors' enum
+        _update_property(schema, "color", "Colors", "string")
+        # Check that the 'color' property now references the 'Colors' enum
+        assert schema["properties"]["color"]["$ref"] == "#/$defs/Colors"
+
+    def test_update_property_with_incompatible_enum_reference(self):
+        """Test updating a property with an enum reference of incompatible type"""
+        schema = {
+            "properties": {
+                "color": {"type": "string"}
+            },
+            "$defs": {
+                "Colors": {"type": "number", "enum": [1, 2, 3]}
+            }
+        }
+        # Try to update the 'color' property with the 'Colors' enum
+        with pytest.raises(ValueError) as excinfo:
+            _update_property(schema, "color", "Colors", "number")
+        assert "Property 'color' type is incompatible with enum 'Colors' type." in str(excinfo.value)
+
+
+    def test_update_property_invalid_prop_name(self):
+        """Test attempts to update not existing property."""
+        # Define a schema with a property and an enum
+        schema = {
+            "properties": {
+                "color": {"type": "string"}
+            },
+            "$defs": {
+                "Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}
+            }
+        }
+        # Try to update a non-existent property
+        with pytest.raises(ValueError) as excinfo:
+            _update_property(schema, "nonexistentProperty", "Colors", "string")
+        assert "Property 'nonexistentProperty' not found." in str(excinfo.value)
+
+
+    def test_update_array_property_with_enum_reference(self):
+        """Test updating an array property with an enum reference."""
+        # Define a schema with an array property and an enum
+        schema = {
+            "properties": {
+                "colors": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                }
+            },
+            "$defs": {
+                "Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}
+            }
+        }
+        # Update the 'colors' property to reference the 'Colors' enum
+        _update_property(schema, "colors", "Colors", "string")
+        # Check that the 'colors' property now references the 'Colors' enum
+        assert schema["properties"]["colors"]["items"]["$ref"] == "#/$defs/Colors"
+
+    def test_update_array_property_with_incompatible_enum_reference(self):
+        """Test updating an array property with an enum reference of incompatible
+        type"""
+        schema = {
+            "properties": {
+                "colors": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                }
+            },
+            "$defs": {
+                "Colors": {"type": "number", "enum": [1, 2, 3]}
+            }
+        }
+        # Try to update the 'colors' property with the 'Colors' enum
+        with pytest.raises(ValueError) as excinfo:
+            _update_property(schema, "colors", "Colors", "number")
+        assert "Property 'colors' items type is incompatible with enum 'Colors' type." in str(excinfo.value)

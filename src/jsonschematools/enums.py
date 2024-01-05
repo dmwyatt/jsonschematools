@@ -58,6 +58,52 @@ def add_or_update_enum_in_defs(
     return schema
 
 
+def _update_property(
+    location: dict[str, any],
+    prop_name: str,
+    enum_name: str,
+    enum_type: str
+) -> None:
+    """
+    Updates a property in a specified location to reference an existing enum.
+
+    This is a helper function used by `update_property_with_enum`.
+
+    Args:
+        location (dict[str, any]): The location in the schema where the property is.
+        prop_name (str): Name of the property to be updated with the enum reference.
+        enum_name (str): Name of an existing enum.
+        enum_type (str): Type of the enum.
+
+    Raises:
+        ValueError: An error is thrown if the property doesn't exist or if the property and enum types are incompatible.
+    """
+    # Get the property
+    prop = location.get("properties", {}).get(prop_name)
+    # If the property does not exist, raise an error
+    if prop is None:
+        raise ValueError(f"Property '{prop_name}' not found.")
+    # Get the type of the property
+    prop_type = prop.get("type")
+    # If the property is an array, get the type of its items
+    if "items" in prop:
+        prop_type = prop["items"].get("type")
+        # If the items type is not the same as the enum type, raise an error
+        if prop_type and prop_type != enum_type:
+            raise ValueError(
+                    f"Property '{prop_name}' items type is incompatible with enum '{enum_name}' type."
+            )
+        # Update the items of the property to reference the enum
+        prop["items"]["$ref"] = f"#/$defs/{enum_name}"
+    # If the property type is not the same as the enum type, raise an error
+    elif prop_type and prop_type != enum_type:
+        raise ValueError(
+                f"Property '{prop_name}' type is incompatible with enum '{enum_name}' type."
+        )
+    # If the property is not an array, update the property to reference the enum
+    else:
+        prop["$ref"] = f"#/$defs/{enum_name}"
+
 def update_property_with_enum(
     schema: dict[str, any],
     enum_name: str,
@@ -67,56 +113,33 @@ def update_property_with_enum(
     """
     Updates a property of a specified JSON schema with an existing enum reference.
 
-    This function modifies a JSON schema's property to reference an existing enum
-    from the `$defs`. The function checks for type compatibility between the property
-    and the enum. If the property type is not defined, the update is allowed. If the
-    property type is defined and different from the enum type, a ValueError is raised.
-
     Args:
         schema (dict[str, any]): The input JSON schema intended for modification.
         enum_name (str): Name of an existing enum present under `$defs`.
         property_name (str): Name of the property to be updated with the enum reference.
-        def_name (Optional[str], optional): If property lies under a definition in
-            `$defs`, give definition's name. Defaults to None.
+        def_name (Optional[str], optional): If property lies under a definition in `$defs`, give definition's name. Defaults to None.
 
     Returns:
-        dict[str, any]: The JSON schema modified to include the enum reference to the
-            specified property.
+        dict[str, any]: The JSON schema modified to include the enum reference to the specified property.
 
     Raises:
-        ValueError: An error is thrown if the property doesn't exist, if the `$defs` or
-            specified enum doesn't exist, or if the property and enum types are
-            incompatible.
+        ValueError: An error is thrown if the property doesn't exist, if the `$defs` or specified enum doesn't exist, or if the property and enum types are incompatible.
     """
+    # Check if the enum exists in the schema
     if enum_name not in schema.get("$defs", {}):
         raise ValueError(f"Enum '{enum_name}' not found in $defs.")
 
+    # Get the type of the enum
     enum_type = schema["$defs"][enum_name]["type"]
 
-    def update_property(location, prop_name):
-        if "properties" in location and prop_name in location["properties"]:
-            prop = location["properties"][prop_name]
-            prop_type = prop.get("type")
-            if prop_type and prop_type != "array":
-                raise ValueError(f"Property '{prop_name}' is not an array.")
-            if (
-                "items" in prop
-                and "type" in prop["items"]
-                and prop["items"]["type"] != enum_type
-            ):
-                raise ValueError(
-                    f"Property '{prop_name}' type is incompatible with enum '{enum_name}' type."
-                )
-            prop["items"] = {"$ref": f"#/$defs/{enum_name}"}
-        else:
-            raise ValueError(f"Property '{prop_name}' not found.")
-
+    # If a definition name is provided, update the property within the definition
     if def_name:
         if def_name in schema["$defs"]:
-            update_property(schema["$defs"][def_name], property_name)
+            _update_property(schema["$defs"][def_name], property_name, enum_name, enum_type)
         else:
             raise ValueError(f"$defs '{def_name}' not found in schema.")
+    # If no definition name is provided, update the property at the root level of the schema
     else:
-        update_property(schema, property_name)
+        _update_property(schema, property_name, enum_name, enum_type)
 
     return schema
