@@ -40,18 +40,27 @@ class TestUpdatePropertyWithEnum:
 
     def test_update_root_property_with_enum(self, test_schema):
         """Test updating a root level property with an enum."""
+        # Define the expected schema after the update
+        expected_schema = test_schema.copy()
+        expected_schema["properties"]["name"] = {"$ref": "#/$defs/StringEnum"}
+
         schema = update_property_with_enum(test_schema, "StringEnum", "name")
-        assert schema["properties"]["name"]["$ref"] == "#/$defs/StringEnum"
+
+        assert schema == expected_schema
 
     def test_update_def_property_with_enum(self, test_schema):
         """Test updating a property within $defs with an enum."""
+        # Define the expected schema after the update
+        expected_schema = test_schema.copy()
+        expected_schema["$defs"]["ContactInfo"]["properties"]["emails"]["items"] = {
+            "$ref": "#/$defs/StringEnum"
+        }
+
         schema = update_property_with_enum(
             test_schema, "StringEnum", "emails", "ContactInfo"
         )
-        assert (
-            schema["$defs"]["ContactInfo"]["properties"]["emails"]["items"]["$ref"]
-            == "#/$defs/StringEnum"
-        )
+
+        assert schema == expected_schema
 
     def test_enum_not_found_error(self, test_schema):
         """Test error when the enum is not found."""
@@ -67,8 +76,13 @@ class TestUpdatePropertyWithEnum:
 
     def test_update_array_property_with_enum(self, test_schema):
         """Test updating an array property with an enum."""
+        # Define the expected schema after the update
+        expected_schema = test_schema.copy()
+        expected_schema["properties"]["tags"]["items"] = {"$ref": "#/$defs/StringEnum"}
+
         schema = update_property_with_enum(test_schema, "StringEnum", "tags")
-        assert schema["properties"]["tags"]["items"]["$ref"] == "#/$defs/StringEnum"
+
+        assert schema == expected_schema
 
     def test_update_array_property_with_incompatible_enum_in_defs(self, test_schema):
         """Test updating an array property within $defs with an incompatible enum."""
