@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jsonschematools"
-version = "0.1.0"
+version = "0.2.0"
 authors = [{name = "Dustin Wyatt", email = "dustin.wyatt@gmail.com"}]
 description = "Utilities for working with JSON Schema."
 readme = "README.md"
