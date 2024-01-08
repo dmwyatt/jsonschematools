@@ -79,8 +79,6 @@ class TestUpdatePropertyWithEnum:
             schema = update_property_with_enum(
                 test_schema, "NumberEnum", "emails", "ContactInfo"
             )
-        assert "Property 'emails' items type is incompatible with enum 'NumberEnum' type." in str(
-            excinfo.value)
         assert (
             "Property 'emails' items type is incompatible with enum 'NumberEnum' type."
             in str(excinfo.value)
