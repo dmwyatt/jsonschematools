@@ -172,70 +172,60 @@ class TestUpdateProperty:
     def test_update_property_with_incompatible_enum_reference(self):
         """Test updating a property with an enum reference of incompatible type"""
         schema = {
-            "properties": {
-                "color": {"type": "string"}
-            },
-            "$defs": {
-                "Colors": {"type": "number", "enum": [1, 2, 3]}
-            }
+            "properties": {"color": {"type": "string"}},
+            "$defs": {"Colors": {"type": "number", "enum": [1, 2, 3]}},
         }
         # Try to update the 'color' property with the 'Colors' enum
         with pytest.raises(ValueError) as excinfo:
             _update_property(schema, "color", "Colors", "number")
-        assert "Property 'color' type is incompatible with enum 'Colors' type." in str(excinfo.value)
-
+        assert "Property 'color' type is incompatible with enum 'Colors' type." in str(
+            excinfo.value
+        )
 
     def test_update_property_invalid_prop_name(self):
         """Test attempts to update not existing property."""
         # Define a schema with a property and an enum
         schema = {
-            "properties": {
-                "color": {"type": "string"}
-            },
-            "$defs": {
-                "Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}
-            }
+            "properties": {"color": {"type": "string"}},
+            "$defs": {"Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}},
         }
         # Try to update a non-existent property
         with pytest.raises(ValueError) as excinfo:
             _update_property(schema, "nonexistentProperty", "Colors", "string")
         assert "Property 'nonexistentProperty' not found." in str(excinfo.value)
 
-
     def test_update_array_property_with_enum_reference(self):
         """Test updating an array property with an enum reference."""
         # Define a schema with an array property and an enum
         schema = {
-            "properties": {
-                "colors": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                }
-            },
-            "$defs": {
-                "Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}
-            }
+            "properties": {"colors": {"type": "array", "items": {"type": "string"}}},
+            "$defs": {"Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}},
         }
         # Update the 'colors' property to reference the 'Colors' enum
         _update_property(schema, "colors", "Colors", "string")
-        # Check that the 'colors' property now references the 'Colors' enum
-        assert schema["properties"]["colors"]["items"]["$ref"] == "#/$defs/Colors"
+        # Define the expected schema after the update
+        expected_schema = {
+            "properties": {
+                "colors": {"type": "array", "items": {"$ref": "#/$defs/Colors"}}
+            },
+            "$defs": {"Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}},
+        }
+        # Check that the schema matches the expected schema
+        assert schema == expected_schema
 
     def test_update_array_property_with_incompatible_enum_reference(self):
         """Test updating an array property with an enum reference of incompatible
         type"""
         schema = {
-            "properties": {
-                "colors": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                }
-            },
-            "$defs": {
-                "Colors": {"type": "number", "enum": [1, 2, 3]}
-            }
+            "properties": {"colors": {"type": "array", "items": {"type": "string"}}},
+            "$defs": {"Colors": {"type": "number", "enum": [1, 2, 3]}},
         }
         # Try to update the 'colors' property with the 'Colors' enum
         with pytest.raises(ValueError) as excinfo:
             _update_property(schema, "colors", "Colors", "number")
         assert "Property 'colors' items type is incompatible with enum 'Colors' type." in str(excinfo.value)
+        assert (
+            "Property 'colors' items type is incompatible with enum 'Colors' type."
+            in str(excinfo.value)
+        )
+
