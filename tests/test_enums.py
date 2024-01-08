@@ -156,17 +156,18 @@ class TestUpdateProperty:
         """Test updating a property with an enum reference."""
         # Define a schema with a property and an enum
         schema = {
-            "properties": {
-                "color": {"type": "string"}
-            },
-            "$defs": {
-                "Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}
-            }
+            "properties": {"color": {"type": "string"}},
+            "$defs": {"Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}},
         }
         # Update the 'color' property to reference the 'Colors' enum
         _update_property(schema, "color", "Colors", "string")
-        # Check that the 'color' property now references the 'Colors' enum
-        assert schema["properties"]["color"]["$ref"] == "#/$defs/Colors"
+        # Define the expected schema after the update
+        expected_schema = {
+            "properties": {"color": {"$ref": "#/$defs/Colors"}},
+            "$defs": {"Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}},
+        }
+        # Check that the schema matches the expected schema
+        assert schema == expected_schema
 
     def test_update_property_with_incompatible_enum_reference(self):
         """Test updating a property with an enum reference of incompatible type"""
