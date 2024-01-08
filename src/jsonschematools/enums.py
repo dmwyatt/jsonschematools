@@ -93,8 +93,8 @@ def _update_property(
             raise ValueError(
                     f"Property '{prop_name}' items type is incompatible with enum '{enum_name}' type."
             )
-        # Update the items of the property to reference the enum
-        prop["items"]["$ref"] = f"#/$defs/{enum_name}"
+        # Replace the items of the property with a reference to the enum
+        location["properties"][prop_name]["items"] = {"$ref": f"#/$defs/{enum_name}"}
     # If the property type is not the same as the enum type, raise an error
     elif prop_type and prop_type != enum_type:
         raise ValueError(
