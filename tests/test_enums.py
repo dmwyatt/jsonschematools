@@ -1,7 +1,8 @@
 import pytest
 from src.jsonschematools.core import python_type_to_json_type
 from src.jsonschematools.enums import (
-    _update_property, add_or_update_enum_in_defs,
+    _update_property,
+    add_or_update_enum_in_defs,
     update_property_with_enum,
 )
 
@@ -45,12 +46,13 @@ class TestUpdatePropertyWithEnum:
     def test_update_def_property_with_enum(self, test_schema):
         """Test updating a property within $defs with an enum."""
         schema = update_property_with_enum(
-                test_schema, "StringEnum", "emails", "ContactInfo"
+            test_schema, "StringEnum", "emails", "ContactInfo"
         )
         assert (
-                schema["$defs"]["ContactInfo"]["properties"]["emails"]["items"]["$ref"]
-                == "#/$defs/StringEnum"
+            schema["$defs"]["ContactInfo"]["properties"]["emails"]["items"]["$ref"]
+            == "#/$defs/StringEnum"
         )
+
     def test_enum_not_found_error(self, test_schema):
         """Test error when the enum is not found."""
         with pytest.raises(ValueError) as excinfo:
@@ -75,10 +77,15 @@ class TestUpdatePropertyWithEnum:
         # Try to update the 'emails' property (which is an array of strings) with the 'NumberEnum'
         with pytest.raises(ValueError) as excinfo:
             schema = update_property_with_enum(
-                    test_schema, "NumberEnum", "emails", "ContactInfo"
+                test_schema, "NumberEnum", "emails", "ContactInfo"
             )
         assert "Property 'emails' items type is incompatible with enum 'NumberEnum' type." in str(
             excinfo.value)
+        assert (
+            "Property 'emails' items type is incompatible with enum 'NumberEnum' type."
+            in str(excinfo.value)
+        )
+
 
 class TestAddOrUpdateEnumInDefs:
     def test_add_new_enum(self, test_schema):
