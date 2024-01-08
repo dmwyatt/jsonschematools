@@ -223,9 +223,19 @@ class TestUpdateProperty:
         # Try to update the 'colors' property with the 'Colors' enum
         with pytest.raises(ValueError) as excinfo:
             _update_property(schema, "colors", "Colors", "number")
-        assert "Property 'colors' items type is incompatible with enum 'Colors' type." in str(excinfo.value)
         assert (
             "Property 'colors' items type is incompatible with enum 'Colors' type."
             in str(excinfo.value)
         )
 
+    def test_update_non_array_non_string_property_with_enum_reference(self):
+        """Test updating a non-array, non-string property with an enum reference."""
+        schema = {
+            "properties": {"color": {"type": "number"}},
+            "$defs": {"Colors": {"type": "string", "enum": ["Red", "Blue", "Green"]}},
+        }
+        with pytest.raises(ValueError) as excinfo:
+            _update_property(schema, "color", "Colors", "string")
+        assert "Property 'color' type is incompatible with enum 'Colors' type." in str(
+            excinfo.value
+        )
